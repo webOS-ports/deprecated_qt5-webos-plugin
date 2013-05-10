@@ -22,6 +22,8 @@ HEADERS =   qwebosintegration.h \
             qwebosbackingstore.h \
             qwebosscreen.h
 
+QMAKE_CXXFLAGS += -fPIC
+
 CONFIG += egl qpa/genericunixfontdatabase
 
 OTHER_FILES += \
