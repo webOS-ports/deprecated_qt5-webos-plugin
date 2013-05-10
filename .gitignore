@@ -1,0 +1,6 @@
+*.o
+*.moc
+*.pro.user
+Makefile
+plugins
+.qmake.conf
