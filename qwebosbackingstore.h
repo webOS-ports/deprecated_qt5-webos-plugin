@@ -39,8 +39,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMINIMALEGLBACKINGSTORE_H
-#define QMINIMALEGLBACKINGSTORE_H
+#ifndef QWEBOSBACKINGSTORE_H
+#define QWEBOSBACKINGSTORE_H
 
 #include <qpa/qplatformbackingstore.h>
 
@@ -70,4 +70,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // QMINIMALEGLBACKINGSTORE_H
+#endif // QWEBOSBACKINGSTORE_H

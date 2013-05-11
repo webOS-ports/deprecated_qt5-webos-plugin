@@ -39,8 +39,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMINIMALEGLINTEGRATION_H
-#define QMINIMALEGLINTEGRATION_H
+#ifndef QWEBOSINTEGRATION_H
+#define QWEBOSINTEGRATION_H
 
 #include "qwebosscreen.h"
 
@@ -74,4 +74,4 @@ private:
 
 QT_END_NAMESPACE
 
-#endif // QMINIMALEGLINTEGRATION_H
+#endif // QWEBOSINTEGRATION_H

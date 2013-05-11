@@ -39,8 +39,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMINIMALEGLWINDOW_H
-#define QMINIMALEGLWINDOW_H
+#ifndef QWEBOSWINDOW_H
+#define QWEBOSWINDOW_H
 
 #include "qwebosintegration.h"
 #include "qwebosscreen.h"
@@ -61,4 +61,4 @@ private:
     WId m_winid;
 };
 QT_END_NAMESPACE
-#endif // QMINIMALEGLWINDOW_H
+#endif // QWEBOSWINDOW_H

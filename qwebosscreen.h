@@ -39,8 +39,8 @@
 **
 ****************************************************************************/
 
-#ifndef QMINIMALEGLSCREEN_H
-#define QMINIMALEGLSCREEN_H
+#ifndef QWEBOSSCREEN_H
+#define QWEBOSSCREEN_H
 
 #include <qpa/qplatformscreen.h>
 
@@ -79,4 +79,4 @@ private:
 };
 
 QT_END_NAMESPACE
-#endif // QMINIMALEGLSCREEN_H
+#endif // QWEBOSSCREEN_H
