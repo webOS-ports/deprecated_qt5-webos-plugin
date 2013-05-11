@@ -1,15 +1,18 @@
-TARGET = qwebos
+load(configure)
+load(qt_parts)
 
-PLUGIN_TYPE = platforms
-PLUGIN_CLASS_NAME = QWebosIntegrationPlugin
-load(qt_plugin)
+TARGET = qwebos
+TEMPLATE = lib
 
 QT += core-private gui-private platformsupport-private
+CONFIG += plugin link_prl
+CONFIG += egl qpa/genericunixfontdatabase
 
 #DEFINES += QEGL_EXTRA_DEBUG
-
-#Avoid X11 header collision
 DEFINES += MESA_EGL_NO_X11_HEADERS
+
+QMAKE_CXXFLAGS += -fPIC
+
 
 SOURCES =   main.cpp \
             qwebosintegration.cpp \
@@ -22,9 +25,4 @@ HEADERS =   qwebosintegration.h \
             qwebosbackingstore.h \
             qwebosscreen.h
 
-QMAKE_CXXFLAGS += -fPIC
-
-CONFIG += egl qpa/genericunixfontdatabase
-
-OTHER_FILES += \
-    webos.json
+OTHER_FILES += webos.json
