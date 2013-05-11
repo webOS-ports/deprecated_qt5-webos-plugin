@@ -26,3 +26,6 @@ HEADERS =   qwebosintegration.h \
             qwebosscreen.h
 
 OTHER_FILES += webos.json
+
+target.path += $$[QT_INSTALL_PLUGINS]/platforms
+INSTALLS += target
