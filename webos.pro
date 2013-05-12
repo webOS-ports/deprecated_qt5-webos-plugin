@@ -14,8 +14,7 @@ PKGCONFIG += glib-2.0 LunaSysMgrIpc webos-gui
 #DEFINES += QEGL_EXTRA_DEBUG
 DEFINES += MESA_EGL_NO_X11_HEADERS
 
-QMAKE_CXXFLAGS += -fPIC
-
+QMAKE_CXXFLAGS += -fPIC -fno-rtti -fno-exceptions
 
 SOURCES =   main.cpp \
             qwebosintegration.cpp \
