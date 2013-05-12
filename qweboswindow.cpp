@@ -3,6 +3,9 @@
 ** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
+** Modified by the webOS ports project
+** Copyright (C) 2013 Simon Busch <morphis@gravedo.de>
+**
 ** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
@@ -41,15 +44,27 @@
 
 #include "qweboswindow.h"
 
+#define MESSAGES_INTERNAL_FILE "SysMgrMessagesInternal.h"
+#include <PIpcMessageMacros.h>
+#include <PIpcChannel.h>
+
 #include <qpa/qwindowsysteminterface.h>
 
 QT_BEGIN_NAMESPACE
 
-QWebosWindow::QWebosWindow(QWindow *w)
-    : QPlatformWindow(w)
+QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
+                           QWindow *w)
+    : QPlatformWindow(w),
+      m_winid(0),
+      m_client(client),
+      m_surfaceClient(surfaceClient)
 {
-    static int serialNo = 0;
-    m_winid  = ++serialNo;
+    // Register our window with the manager to get a id assigned
+    QSize size = geometry().size();
+    channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 1),
+                size.width(), size.height(), &m_winid));
+    m_client->addWindow(this);
+
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(m_winid));
 #endif
@@ -72,6 +87,161 @@ void QWebosWindow::setGeometry(const QRect &)
 WId QWebosWindow::winId() const
 {
     return m_winid;
+}
+
+void QWebosWindow::setVisible(bool visible)
+{
+    if (visible) {
+        std::string winProps = "{ "
+                    " 'fullScreen': false, " // defaults to false
+                    " 'overlayNotificationsPosition': 'bottom', " // options are left, right, top, bottom
+                    " 'subtleLightbar': true, " // defaults to false
+                    " 'blockScreenTimeout': true, " // defaults to false
+                    " 'fastAccelerometer': true, " // defaults to false
+                    " 'suppressBannerMessages': false, " // defaults to false
+                    " 'hasPauseUi': true " // defaults to false
+                    " }";
+        channel()->sendAsyncMessage(new ViewHost_SetWindowProperties(winId(), winProps));
+        channel()->sendAsyncMessage(new ViewHost_AddWindow(winId()));
+        channel()->sendAsyncMessage(new ViewHost_FocusWindow(winId()));
+    }
+    else {
+        channel()->sendAsyncMessage(new ViewHost_RemoveWindow(winId()));
+    }
+
+    QPlatformWindow::setVisible(visible);
+}
+
+void QWebosWindow::handleFocus(bool focused)
+{
+    if (focused)
+        QWindowSystemInterface::handleWindowActivated(window());
+    else
+        QWindowSystemInterface::handleWindowActivated(0);
+}
+
+void QWebosWindow::handleResize(int width, int height, bool resizeBuffer)
+{
+    Q_UNUSED(resizeBuffer)
+    setGeometry(QRect(0, 0, width, height));
+}
+
+void QWebosWindow::handleFullScreenEnabled()
+{
+}
+
+void QWebosWindow::handleFullScreenDisabled()
+{
+}
+
+void QWebosWindow::handlePause()
+{
+}
+
+void QWebosWindow::handleResume()
+{
+}
+
+void QWebosWindow::handleInputEvent(const SysMgrEventWrapper& wrapper)
+{
+    SysMgrEvent* e = wrapper.event;
+    QPoint mousePos;
+
+    switch(e->type)
+    {
+        case SysMgrEvent::PenFlick:
+            mousePos = QPoint(e->x, e->y);
+            QWindowSystemInterface::handleWheelEvent(window(),mousePos,mousePos,e->z,Qt::Vertical);
+            break;
+        case SysMgrEvent::PenPressAndHold:
+            mousePos = QPoint(e->x, e->y);
+            QWindowSystemInterface::handleMouseEvent(window(), mousePos, mousePos, Qt::NoButton);
+            break;
+        case SysMgrEvent::PenDown:
+            mousePos = QPoint(e->x, e->y);
+            QWindowSystemInterface::handleMouseEvent(window(), mousePos, mousePos, Qt::LeftButton);
+            break;
+        case SysMgrEvent::PenUp:
+            mousePos = QPoint(e->x, e->y);
+            QWindowSystemInterface::handleMouseEvent(window(), mousePos, mousePos, Qt::NoButton);
+            break;
+        case SysMgrEvent::PenMove:
+            mousePos = QPoint(e->x, e->y);
+            QWindowSystemInterface::handleMouseEvent(window(), mousePos, mousePos, Qt::LeftButton);
+            break;
+        case SysMgrEvent::Accelerometer:
+        case SysMgrEvent::GestureStart:
+        case SysMgrEvent::GestureEnd:
+        case SysMgrEvent::GestureCancel:
+            break;
+        default:
+            break;
+    }
+}
+
+void QWebosWindow::handleTouchEvent(const SysMgrTouchEvent& touchEvent)
+{
+    Q_UNUSED(touchEvent);
+#if 0
+    QEvent::Type type = QEvent::None;
+
+    QList<QWindowSystemInterface::TouchPoint> touchPoints;
+    for (unsigned int i = 0; i < touchEvent.numTouchPoints; i++) {
+        QWindowSystemInterface::TouchPoint touchPoint;
+        QPoint pt(touchEvent.touchPoints[i].x, touchEvent.touchPoints[i].y);
+
+        // get size of screen which contains window
+        QPlatformScreen *platformScreen = QPlatformScreen::platformScreenForWindow(window());
+        QSizeF screenSize = platformScreen->physicalSize();
+
+        touchPoint.id = touchEvent.touchPoints[i].id;
+
+        // update cached position of current touch point
+        touchPoint.normalPosition = QPointF( static_cast<qreal>(pt.x()) / screenSize.width(), static_cast<qreal>(pt.y()) / screenSize.height() );
+        touchPoint.area = QRectF( pt.x(), pt.y(), 0.0, 0.0 );
+        touchPoint.pressure = 1;
+
+        touchPoint.state = static_cast<Qt::TouchPointState>(touchEvent.touchPoints[i].state);
+
+        // FIXME: what if the touchpoints have different states? does this ever happen?
+        switch (touchPoint.state) {
+            case Qt::TouchPointPressed:
+                type = QEvent::TouchBegin;
+                break;
+            case Qt::TouchPointMoved:
+                type = QEvent::TouchUpdate;
+                break;
+            case Qt::TouchPointReleased:
+                type = QEvent::TouchEnd;
+                break;
+            case Qt::TouchPointStationary:
+                type = QEvent::TouchUpdate;
+                break;
+        }
+
+        touchPoints.append(touchPoint);
+
+        QWindowSystemInterface::handleMouseEvent(window(), pt, pt, (touchPoint.state != Qt::TouchPointReleased ? Qt::LeftButton : Qt::NoButton));
+    }
+
+    QWindowSystemInterface::handleTouchEvent(window(), type, QTouchEvent::TouchScreen, touchPoints);
+#endif
+}
+
+void QWebosWindow::handleKeyEvent(const SysMgrKeyEvent& keyEvent)
+{
+    QKeyEvent ev = keyEvent.qtEvent();
+    Qt::Key key;
+    if (ev.key() == 0x01200001)
+        key = Qt::Key_Backspace;
+    else
+        key = (Qt::Key)ev.key();
+    QWindowSystemInterface::handleKeyEvent(window(), ev.type(), key, ev.modifiers(), ev.text(), 0, 0);
+}
+
+PIpcChannel* QWebosWindow::channel() const
+{
+    return m_client->channel();
 }
 
 QT_END_NAMESPACE

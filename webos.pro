@@ -8,6 +8,9 @@ QT += core-private gui-private platformsupport-private
 CONFIG += plugin link_prl
 CONFIG += egl qpa/genericunixfontdatabase
 
+CONFIG += link_pkgconfig
+PKGCONFIG += glib-2.0 LunaSysMgrIpc webos-gui
+
 #DEFINES += QEGL_EXTRA_DEBUG
 DEFINES += MESA_EGL_NO_X11_HEADERS
 
@@ -18,12 +21,14 @@ SOURCES =   main.cpp \
             qwebosintegration.cpp \
             qweboswindow.cpp \
             qwebosbackingstore.cpp \
-            qwebosscreen.cpp
+            qwebosscreen.cpp \
+            qweboswindowmanagerclient.cpp
 
 HEADERS =   qwebosintegration.h \
             qweboswindow.h \
             qwebosbackingstore.h \
-            qwebosscreen.h
+            qwebosscreen.h \
+            qweboswindowmanagerclient.h
 
 OTHER_FILES += webos.json
 

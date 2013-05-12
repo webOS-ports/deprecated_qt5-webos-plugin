@@ -44,21 +44,49 @@
 
 #include "qwebosintegration.h"
 #include "qwebosscreen.h"
+#include "qweboswindowmanagerclient.h"
 
 #include <qpa/qplatformwindow.h>
+
+#include <SysMgrEvent.h>
+#include <SysMgrDefs.h>
+#include <SysMgrKeyEventTraits.h>
+#include <SysMgrTouchEventTraits.h>
+
+#include <WebosSurfaceManagerClient.h>
+
+class PIpcChannel;
 
 QT_BEGIN_NAMESPACE
 
 class QWebosWindow : public QPlatformWindow
 {
 public:
-    QWebosWindow(QWindow *w);
+    QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
+                 QWindow *w);
 
     void setGeometry(const QRect &);
     WId winId() const;
 
+    virtual void setVisible(bool visible);
+
+public:
+    void handleFocus(bool focused);
+    void handleResize(int width, int height, bool resizeBuffer);
+    void handleFullScreenEnabled();
+    void handleFullScreenDisabled();
+    void handlePause();
+    void handleResume();
+    void handleInputEvent(const SysMgrEventWrapper& wrapper);
+    void handleTouchEvent(const SysMgrTouchEvent& touchEvent);
+    void handleKeyEvent(const SysMgrKeyEvent& keyEvent);
+    void handleBufferConsumed(int key);
+    PIpcChannel* channel() const; // Required by IPC_MESSAGE_FORWARD
+
 private:
     WId m_winid;
+    QWebosWindowManagerClient *m_client;
+    WebosSurfaceManagerClient *m_surfaceClient;
 };
 QT_END_NAMESPACE
 #endif // QWEBOSWINDOW_H

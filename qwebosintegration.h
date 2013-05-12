@@ -3,6 +3,9 @@
 ** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
+** Modified by the webOS ports project
+** Copyright (C) 2013 Simon Busch <morphis@gravedo.de>
+**
 ** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
@@ -43,9 +46,14 @@
 #define QWEBOSINTEGRATION_H
 
 #include "qwebosscreen.h"
+#include "qweboswindowmanagerclient.h"
+
+#include <WebosSurfaceManagerClient.h>
 
 #include <qpa/qplatformintegration.h>
 #include <qpa/qplatformscreen.h>
+
+#include <glib.h>
 
 QT_BEGIN_NAMESPACE
 
@@ -70,6 +78,11 @@ public:
 private:
     QPlatformFontDatabase *mFontDb;
     QPlatformScreen *mScreen;
+
+    GMainContext *m_context;
+    GMainLoop *m_mainLoop;
+    QWebosWindowManagerClient *m_client;
+    WebosSurfaceManagerClient m_surfaceClient;
 };
 
 QT_END_NAMESPACE

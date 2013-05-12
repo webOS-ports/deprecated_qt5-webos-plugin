@@ -3,6 +3,9 @@
 ** Copyright (C) 2013 Digia Plc and/or its subsidiary(-ies).
 ** Contact: http://www.qt-project.org/legal
 **
+** Modified by the webOS ports project
+** Copyright (C) 2013 Simon Busch <morphis@gravedo.de>
+**
 ** This file is part of the plugins of the Qt Toolkit.
 **
 ** $QT_BEGIN_LICENSE:LGPL$
@@ -64,6 +67,10 @@ QWebosIntegration::QWebosIntegration()
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosIntegration\n");
 #endif
+
+    m_context = g_main_context_default();
+    m_mainLoop = g_main_loop_new(m_context, TRUE);
+    m_client = new QWebosWindowManagerClient(m_mainLoop);
 }
 
 QWebosIntegration::~QWebosIntegration()
@@ -86,7 +93,7 @@ QPlatformWindow *QWebosIntegration::createPlatformWindow(QWindow *window) const
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosIntegration::createPlatformWindow %p\n",window);
 #endif
-    QPlatformWindow *w = new QWebosWindow(window);
+    QPlatformWindow *w = new QWebosWindow(m_client, &m_surfaceClient, window);
     w->requestActivateWindow();
     return w;
 }
