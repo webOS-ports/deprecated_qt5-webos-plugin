@@ -45,11 +45,6 @@
 #include <QtPlatformSupport/private/qeglconvenience_p.h>
 #include <QtPlatformSupport/private/qeglplatformcontext_p.h>
 
-#ifdef Q_OPENKODE
-#include <KD/kd.h>
-#include <KD/NV_initialize.h>
-#endif //Q_OPENKODE
-
 QT_BEGIN_NAMESPACE
 
 // #define QEGL_EXTRA_DEBUG
@@ -153,14 +148,6 @@ void QWebosScreen::createAndSetPlatformContext()
     EGLConfig config = q_configFromGLFormat(m_dpy, platformFormat);
 
     EGLNativeWindowType eglWindow = 0;
-#ifdef Q_OPENKODE
-    if (kdInitializeNV() == KD_ENOTINITIALIZED) {
-        qFatal("Did not manage to initialize openkode");
-    }
-    KDWindow *window = kdCreateWindow(m_dpy,config,0);
-
-    kdRealizeWindow(window,&eglWindow);
-#endif
 
 #ifdef QEGL_EXTRA_DEBUG
     q_printEglConfig(m_dpy, config);
@@ -172,7 +159,6 @@ void QWebosScreen::createAndSetPlatformContext()
         eglTerminate(m_dpy);
         qFatal("EGL error");
     }
-    //    qWarning("Created surface %dx%d\n", w, h);
 
     QEGLPlatformContext *platformContext = new QWebosContext(platformFormat, 0, m_dpy);
     m_platformContext = platformContext;
