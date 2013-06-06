@@ -53,26 +53,60 @@
 QT_BEGIN_NAMESPACE
 
 QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
-                           QWindow *w)
+                           QWindow *w, QWebosScreen *screen)
     : QPlatformWindow(w),
-      m_winid(0),
-      m_client(client),
-      m_surfaceClient(surfaceClient)
+      OffscreenNativeWindow(w->width(), w->height()),
+      mWinid(0),
+      mClient(client),
+      mSurfaceClient(surfaceClient),
+      mScreen(screen),
+      mBufferSemaphore(0)
 {
     // Register our window with the manager to get a id assigned
     QSize size = geometry().size();
     channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 1),
-                size.width(), size.height(), &m_winid));
-    m_client->addWindow(this);
+                size.width(), size.height(), &mWinid));
+    mClient->addWindow(this);
 
 #ifdef QEGL_EXTRA_DEBUG
-    qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(m_winid));
+    qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(mWinid));
 #endif
 
-    QRect screenGeometry(screen()->availableGeometry());
+    QRect screenGeometry(mScreen->availableGeometry());
     if (w->geometry() != screenGeometry) {
         QWindowSystemInterface::handleGeometryChange(w, screenGeometry);
     }
+
+    createSurface();
+}
+
+void QWebosWindow::createSurface()
+{
+    EGLNativeWindowType nativeWindow = static_cast<ANativeWindow*>(this);
+
+    mEglSurface = eglCreateWindowSurface(mScreen->eglDisplay(), mScreen->eglConfig(),
+                                         nativeWindow, NULL);
+    assert(mEglSurface != EGL_NO_SURFACE);
+}
+
+void QWebosWindow::postBuffer(OffscreenNativeWindowBuffer *buffer)
+{
+    if (mWinid == -1)
+        return;
+
+    mSurfaceClient->postBuffer(mWinid, buffer);
+}
+
+void QWebosWindow::waitForBuffer(OffscreenNativeWindowBuffer *buffer)
+{
+    if (mWinid == -1)
+        return;
+
+    if (!mBufferSemaphore)
+        mBufferSemaphore = new QSystemSemaphore(QString("EGLWindow%1").arg(mWinid), 3,
+                                                QSystemSemaphore::Create);
+
+    mBufferSemaphore->acquire();
 }
 
 void QWebosWindow::setGeometry(const QRect &)
@@ -82,11 +116,6 @@ void QWebosWindow::setGeometry(const QRect &)
     QWindowSystemInterface::handleGeometryChange(window(), rect);
 
     QPlatformWindow::setGeometry(rect);
-}
-
-WId QWebosWindow::winId() const
-{
-    return m_winid;
 }
 
 void QWebosWindow::setVisible(bool visible)
@@ -241,7 +270,7 @@ void QWebosWindow::handleKeyEvent(const SysMgrKeyEvent& keyEvent)
 
 PIpcChannel* QWebosWindow::channel() const
 {
-    return m_client->channel();
+    return mClient->channel();
 }
 
 QT_END_NAMESPACE

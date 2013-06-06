@@ -47,156 +47,50 @@
 
 QT_BEGIN_NAMESPACE
 
-// #define QEGL_EXTRA_DEBUG
-
-class QWebosContext : public QEGLPlatformContext
+QWebosScreen::QWebosScreen(EGLNativeDisplayType displayType)
+    : mDepth(32)
+    , mFormat(QImage::Format_RGB32)
+    , mEglDisplay(EGL_NO_DISPLAY)
+    , mEglConfig(NULL)
+    , mSurfaceFormat()
 {
-public:
-    QWebosContext(const QSurfaceFormat &format, QPlatformOpenGLContext *share, EGLDisplay display,
-                  EGLenum eglApi = EGL_OPENGL_ES_API)
-        : QEGLPlatformContext(format, share, display, eglApi)
-    {
-    }
+    assert(eglBindAPI(EGL_OPENGL_ES_API) == EGL_TRUE);
+    assert((mEglDisplay = eglGetDisplay(displayType)) != EGL_NO_DISPLAY);
+    assert(eglInitialize(mEglDisplay, NULL, NULL) == EGL_TRUE);
 
-    EGLSurface eglSurfaceForPlatformSurface(QPlatformSurface *surface)
-    {
-        QWebosWindow *window = static_cast<QWebosWindow *>(surface);
-        QWebosScreen *screen = static_cast<QWebosScreen *>(window->screen());
-        return screen->surface();
-    }
-};
-
-QWebosScreen::QWebosScreen(EGLNativeDisplayType display)
-    : m_depth(32)
-    , m_format(QImage::Format_Invalid)
-    , m_platformContext(0)
-    , m_surface(0)
-{
-#ifdef QEGL_EXTRA_DEBUG
-    qWarning("QEglScreen %p\n", this);
-#endif
-
-    EGLint major, minor;
-
-    if (!eglBindAPI(EGL_OPENGL_ES_API)) {
-        qWarning("Could not bind GL_ES API\n");
-        qFatal("EGL error");
-    }
-
-    m_dpy = eglGetDisplay(display);
-    if (m_dpy == EGL_NO_DISPLAY) {
-        qWarning("Could not open egl display\n");
-        qFatal("EGL error");
-    }
-    qWarning("Opened display %p\n", m_dpy);
-
-    if (!eglInitialize(m_dpy, &major, &minor)) {
-        qWarning("Could not initialize egl display\n");
-        qFatal("EGL error");
-    }
-
-    qWarning("Initialized display %d %d\n", major, minor);
+    mSurfaceFormat.setRedBufferSize(8);
+    mSurfaceFormat.setGreenBufferSize(8);
+    mSurfaceFormat.setBlueBufferSize(8);
+    mSurfaceFormat.setAlphaBufferSize(8);
+    mSurfaceFormat.setDepthBufferSize(24);
+    mSurfaceFormat.setStencilBufferSize(8);
+    // if (!qEnvirnonmentVariableIsEmpty("QT_QPA_WEBOS_MULTISAMPLE"))
+    //    mSurfaceFormat.setSamples(4);
+    mEglConfig = q_configFromGLFormat(mEglDisplay, mSurfaceFormat, true);
 
     int swapInterval = 1;
-    QByteArray swapIntervalString = qgetenv("QT_QPA_EGLFS_SWAPINTERVAL");
+    QByteArray swapIntervalString = qgetenv("QT_QPA_WEBOS_SWAPINTERVAL");
     if (!swapIntervalString.isEmpty()) {
         bool ok;
         swapInterval = swapIntervalString.toInt(&ok);
         if (!ok)
             swapInterval = 1;
     }
-    eglSwapInterval(m_dpy, swapInterval);
+    eglSwapInterval(mEglDisplay, swapInterval);
 }
 
 QWebosScreen::~QWebosScreen()
 {
-    if (m_surface)
-        eglDestroySurface(m_dpy, m_surface);
-
-    eglTerminate(m_dpy);
-}
-
-void QWebosScreen::createAndSetPlatformContext() const {
-    const_cast<QWebosScreen *>(this)->createAndSetPlatformContext();
-}
-
-void QWebosScreen::createAndSetPlatformContext()
-{
-    QSurfaceFormat platformFormat;
-
-    QByteArray depthString = qgetenv("QT_QPA_EGLFS_DEPTH");
-    if (depthString.toInt() == 16) {
-        platformFormat.setDepthBufferSize(16);
-        platformFormat.setRedBufferSize(5);
-        platformFormat.setGreenBufferSize(6);
-        platformFormat.setBlueBufferSize(5);
-        m_depth = 16;
-        m_format = QImage::Format_RGB16;
-    } else {
-        platformFormat.setDepthBufferSize(24);
-        platformFormat.setStencilBufferSize(8);
-        platformFormat.setRedBufferSize(8);
-        platformFormat.setGreenBufferSize(8);
-        platformFormat.setBlueBufferSize(8);
-        m_depth = 32;
-        m_format = QImage::Format_RGB32;
-    }
-
-    if (!qEnvironmentVariableIsEmpty("QT_QPA_EGLFS_MULTISAMPLE"))
-        platformFormat.setSamples(4);
-
-    EGLConfig config = q_configFromGLFormat(m_dpy, platformFormat);
-
-    EGLNativeWindowType eglWindow = 0;
-
-#ifdef QEGL_EXTRA_DEBUG
-    q_printEglConfig(m_dpy, config);
-#endif
-
-    m_surface = eglCreateWindowSurface(m_dpy, config, eglWindow, NULL);
-    if (m_surface == EGL_NO_SURFACE) {
-        qWarning("Could not create the egl surface: error = 0x%x\n", eglGetError());
-        eglTerminate(m_dpy);
-        qFatal("EGL error");
-    }
-
-    QEGLPlatformContext *platformContext = new QWebosContext(platformFormat, 0, m_dpy);
-    m_platformContext = platformContext;
-
-    EGLint w,h;                    // screen size detection
-    eglQuerySurface(m_dpy, m_surface, EGL_WIDTH, &w);
-    eglQuerySurface(m_dpy, m_surface, EGL_HEIGHT, &h);
-
-    m_geometry = QRect(0,0,w,h);
-
-}
-
-QRect QWebosScreen::geometry() const
-{
-    if (m_geometry.isNull()) {
-        createAndSetPlatformContext();
-    }
-    return m_geometry;
 }
 
 int QWebosScreen::depth() const
 {
-    return m_depth;
+    return mDepth;
 }
 
 QImage::Format QWebosScreen::format() const
 {
-    if (m_format == QImage::Format_Invalid)
-        createAndSetPlatformContext();
-    return m_format;
-}
-QPlatformOpenGLContext *QWebosScreen::platformContext() const
-{
-    if (!m_platformContext) {
-        QWebosScreen *that = const_cast<QWebosScreen *>(this);
-        that->createAndSetPlatformContext();
-    }
-    return m_platformContext;
+    return mFormat;
 }
 
 QT_END_NAMESPACE

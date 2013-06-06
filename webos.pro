@@ -21,13 +21,15 @@ SOURCES =   main.cpp \
             qweboswindow.cpp \
             qwebosbackingstore.cpp \
             qwebosscreen.cpp \
-            qweboswindowmanagerclient.cpp
+            qweboswindowmanagerclient.cpp \
+            qweboscontext.cpp
 
 HEADERS =   qwebosintegration.h \
             qweboswindow.h \
             qwebosbackingstore.h \
             qwebosscreen.h \
-            qweboswindowmanagerclient.h
+            qweboswindowmanagerclient.h \
+            qweboscontext.h
 
 OTHER_FILES += webos.json
 

@@ -39,67 +39,36 @@
 **
 ****************************************************************************/
 
-#ifndef QWEBOSWINDOW_H
-#define QWEBOSWINDOW_H
+#ifndef QWEBOSCONTEXT_H
+#define QWEBOSCONTEXT_H
 
-#include "qwebosintegration.h"
-#include "qwebosscreen.h"
-#include "qweboswindowmanagerclient.h"
-
-#include <qpa/qplatformwindow.h>
-#include <QSystemSemaphore>
-
-#include <SysMgrEvent.h>
-#include <SysMgrDefs.h>
-#include <SysMgrKeyEventTraits.h>
-#include <SysMgrTouchEventTraits.h>
-
-#include <WebosSurfaceManagerClient.h>
-#include <OffscreenNativeWindow.h>
-
-class PIpcChannel;
+#include <QtPlatformSupport/private/qeglconvenience_p.h>
+#include <QtPlatformSupport/private/qeglplatformcontext_p.h>
 
 QT_BEGIN_NAMESPACE
 
-class QWebosWindow : public QPlatformWindow,
-                     public OffscreenNativeWindow
+class QWebosScreen;
+
+class QWebosContext : public QPlatformOpenGLContext
 {
 public:
-    QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
-                 QWindow *w, QWebosScreen *screen);
+    QWebosContext(QWebosScreen *screen);
+    ~QWebosContext();
 
-    void setGeometry(const QRect &);
-    virtual void setVisible(bool visible);
+    QSurfaceFormat format() const { return mScreen->surfaceFormat(); }
 
-    WId winId() const { return mWinid; }
-    EGLSurface eglSurface() const { return mEglSurface; }
-
-    virtual void postBuffer(OffscreenNativeWindowBuffer *buffer);
-    virtual void waitForBuffer(OffscreenNativeWindowBuffer *buffer);
-
-public:
-    void handleFocus(bool focused);
-    void handleResize(int width, int height, bool resizeBuffer);
-    void handleFullScreenEnabled();
-    void handleFullScreenDisabled();
-    void handlePause();
-    void handleResume();
-    void handleInputEvent(const SysMgrEventWrapper& wrapper);
-    void handleTouchEvent(const SysMgrTouchEvent& touchEvent);
-    void handleKeyEvent(const SysMgrKeyEvent& keyEvent);
-    void handleBufferConsumed(int key);
-    PIpcChannel* channel() const; // Required by IPC_MESSAGE_FORWARD
+    void swapBuffers(QPlatformSurface *surface);
+    bool makeCurrent(QPlatformSurface *surface);
+    void doneCurrent();
+    bool isValid() const { return mEglContext != EGL_NO_CONTEXT; }
+    void (*getProcAddress(const QByteArray& procName)) ();
+    EGLContext eglContext() const { return mEglContext; }
 
 private:
-    WId mWinid;
-    QWebosWindowManagerClient *mClient;
-    WebosSurfaceManagerClient *mSurfaceClient;
     QWebosScreen *mScreen;
-    EGLSurface mEglSurface;
-    QSystemSemaphore *mBufferSemaphore;
-
-private:
-    void createSurface();
+    EGLContext mEglContext;
 };
+
 QT_END_NAMESPACE
-#endif // QWEBOSWINDOW_H
+
+#endif // QEGLFSCONTEXT_H

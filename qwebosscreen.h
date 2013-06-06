@@ -43,40 +43,34 @@
 #define QWEBOSSCREEN_H
 
 #include <qpa/qplatformscreen.h>
-
-#include <QtCore/QTextStream>
-
+#include <QSurfaceFormat>
 #include <EGL/egl.h>
 
 QT_BEGIN_NAMESPACE
 
-class QPlatformOpenGLContext;
-
 class QWebosScreen : public QPlatformScreen
 {
 public:
-    QWebosScreen(EGLNativeDisplayType display);
+    QWebosScreen(EGLNativeDisplayType displayType);
     ~QWebosScreen();
 
-    QRect geometry() const;
+    QRect geometry() const { return mGeometry; }
     int depth() const;
     QImage::Format format() const;
 
-    QPlatformOpenGLContext *platformContext() const;
-
-    EGLSurface surface() const { return m_surface; }
+    QSurfaceFormat surfaceFormat() const { return mSurfaceFormat; }
+    EGLDisplay eglDisplay() const { return mEglDisplay; }
+    EGLConfig eglConfig() const { return mEglConfig; }
 
 private:
-    void createAndSetPlatformContext() const;
-    void createAndSetPlatformContext();
-
-    QRect m_geometry;
-    int m_depth;
-    QImage::Format m_format;
-    QPlatformOpenGLContext *m_platformContext;
-    EGLDisplay m_dpy;
-    EGLSurface m_surface;
+    QRect mGeometry;
+    int mDepth;
+    QImage::Format mFormat;
+    EGLDisplay mEglDisplay;
+    EGLConfig mEglConfig;
+    QSurfaceFormat mSurfaceFormat;
 };
 
 QT_END_NAMESPACE
+
 #endif // QWEBOSSCREEN_H

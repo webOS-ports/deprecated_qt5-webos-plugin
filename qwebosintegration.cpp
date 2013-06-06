@@ -43,9 +43,10 @@
 ****************************************************************************/
 
 #include "qwebosintegration.h"
-
 #include "qweboswindow.h"
 #include "qwebosbackingstore.h"
+#include "qweboscontext.h"
+#include "qwebosscreen.h"
 
 #include <QtPlatformSupport/private/qgenericunixfontdatabase_p.h>
 #include <QtPlatformSupport/private/qgenericunixeventdispatcher_p.h>
@@ -60,7 +61,8 @@
 QT_BEGIN_NAMESPACE
 
 QWebosIntegration::QWebosIntegration()
-    : mFontDb(new QGenericUnixFontDatabase()), mScreen(new QWebosScreen(EGL_DEFAULT_DISPLAY))
+    : mFontDb(new QGenericUnixFontDatabase()),
+      mScreen(new QWebosScreen(EGL_DEFAULT_DISPLAY))
 {
     screenAdded(mScreen);
 
@@ -68,14 +70,15 @@ QWebosIntegration::QWebosIntegration()
     qWarning("QWebosIntegration\n");
 #endif
 
-    m_context = g_main_context_default();
-    m_mainLoop = g_main_loop_new(m_context, TRUE);
-    m_client = new QWebosWindowManagerClient(m_mainLoop);
+    mContext = g_main_context_default();
+    mMainLoop = g_main_loop_new(mContext, TRUE);
+    mClient = new QWebosWindowManagerClient(mMainLoop);
 }
 
 QWebosIntegration::~QWebosIntegration()
 {
     delete mScreen;
+    delete mFontDb;
 }
 
 bool QWebosIntegration::hasCapability(QPlatformIntegration::Capability cap) const
@@ -90,26 +93,20 @@ bool QWebosIntegration::hasCapability(QPlatformIntegration::Capability cap) cons
 
 QPlatformWindow *QWebosIntegration::createPlatformWindow(QWindow *window) const
 {
-#ifdef QEGL_EXTRA_DEBUG
-    qWarning("QWebosIntegration::createPlatformWindow %p\n",window);
-#endif
-    QPlatformWindow *w = new QWebosWindow(m_client, &m_surfaceClient, window);
-    w->requestActivateWindow();
-    return w;
+    QPlatformWindow *platformWindow = new QWebosWindow(mClient, &mSurfaceClient, window, mScreen);
+    platformWindow->requestActivateWindow();
+    return platformWindow;
 }
 
 
 QPlatformBackingStore *QWebosIntegration::createPlatformBackingStore(QWindow *window) const
 {
-#ifdef QEGL_EXTRA_DEBUG
-    qWarning("QWebosIntegration::createWindowSurface %p\n", window);
-#endif
     return new QWebosBackingStore(window);
 }
 
 QPlatformOpenGLContext *QWebosIntegration::createPlatformOpenGLContext(QOpenGLContext *context) const
 {
-    return static_cast<QWebosScreen *>(context->screen()->handle())->platformContext();
+    return new QWebosContext(static_cast<QWebosScreen*>(context->screen()->handle()));
 }
 
 QPlatformFontDatabase *QWebosIntegration::fontDatabase() const
@@ -120,14 +117,6 @@ QPlatformFontDatabase *QWebosIntegration::fontDatabase() const
 QAbstractEventDispatcher *QWebosIntegration::guiThreadEventDispatcher() const
 {
     return createUnixEventDispatcher();
-}
-
-QVariant QWebosIntegration::styleHint(QPlatformIntegration::StyleHint hint) const
-{
-    if (hint == QPlatformIntegration::ShowIsFullScreen)
-        return true;
-
-    return QPlatformIntegration::styleHint(hint);
 }
 
 QT_END_NAMESPACE

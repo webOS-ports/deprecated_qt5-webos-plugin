@@ -39,67 +39,59 @@
 **
 ****************************************************************************/
 
-#ifndef QWEBOSWINDOW_H
-#define QWEBOSWINDOW_H
-
-#include "qwebosintegration.h"
+#include <assert.h>
+#include <QtDebug>
+#include <QtPlatformSupport/private/qeglconvenience_p.h>
 #include "qwebosscreen.h"
-#include "qweboswindowmanagerclient.h"
-
-#include <qpa/qplatformwindow.h>
-#include <QSystemSemaphore>
-
-#include <SysMgrEvent.h>
-#include <SysMgrDefs.h>
-#include <SysMgrKeyEventTraits.h>
-#include <SysMgrTouchEventTraits.h>
-
-#include <WebosSurfaceManagerClient.h>
-#include <OffscreenNativeWindow.h>
-
-class PIpcChannel;
+#include "qweboscontext.h"
+#include "qweboswindow.h"
 
 QT_BEGIN_NAMESPACE
 
-class QWebosWindow : public QPlatformWindow,
-                     public OffscreenNativeWindow
+QWebosContext::QWebosContext(QWebosScreen *screen)
+    : mScreen(screen)
 {
-public:
-    QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
-                 QWindow *w, QWebosScreen *screen);
+    assert(mScreen != NULL);
 
-    void setGeometry(const QRect &);
-    virtual void setVisible(bool visible);
+    QVector<EGLint> attribs;
+    attribs.append(EGL_CONTEXT_CLIENT_VERSION);
+    attribs.append(2);
+    attribs.append(EGL_NONE);
+    assert(eglBindAPI(EGL_OPENGL_ES_API) == EGL_TRUE);
+    assert((mEglContext = eglCreateContext(screen->eglDisplay(), screen->eglConfig(), EGL_NO_CONTEXT, attribs.constData())) != EGL_NO_CONTEXT);
+}
 
-    WId winId() const { return mWinid; }
-    EGLSurface eglSurface() const { return mEglSurface; }
+QWebosContext::~QWebosContext()
+{
+    assert(eglDestroyContext(mScreen->eglDisplay(), mEglContext) == EGL_TRUE);
+}
 
-    virtual void postBuffer(OffscreenNativeWindowBuffer *buffer);
-    virtual void waitForBuffer(OffscreenNativeWindowBuffer *buffer);
+bool QWebosContext::makeCurrent(QPlatformSurface *surface)
+{
+    assert(surface->surface()->surfaceType() == QSurface::OpenGLSurface);
 
-public:
-    void handleFocus(bool focused);
-    void handleResize(int width, int height, bool resizeBuffer);
-    void handleFullScreenEnabled();
-    void handleFullScreenDisabled();
-    void handlePause();
-    void handleResume();
-    void handleInputEvent(const SysMgrEventWrapper& wrapper);
-    void handleTouchEvent(const SysMgrTouchEvent& touchEvent);
-    void handleKeyEvent(const SysMgrKeyEvent& keyEvent);
-    void handleBufferConsumed(int key);
-    PIpcChannel* channel() const; // Required by IPC_MESSAGE_FORWARD
+    EGLSurface eglSurface = static_cast<QWebosWindow*>(surface)->eglSurface();
+    eglBindAPI(EGL_OPENGL_ES_API);
+    eglMakeCurrent(mScreen->eglDisplay(), eglSurface, eglSurface, mEglContext);
+}
 
-private:
-    WId mWinid;
-    QWebosWindowManagerClient *mClient;
-    WebosSurfaceManagerClient *mSurfaceClient;
-    QWebosScreen *mScreen;
-    EGLSurface mEglSurface;
-    QSystemSemaphore *mBufferSemaphore;
+void QWebosContext::doneCurrent()
+{
+    eglBindAPI(EGL_OPENGL_ES_API);
+    eglMakeCurrent(mScreen->eglDisplay(), EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+}
 
-private:
-    void createSurface();
-};
+void QWebosContext::swapBuffers(QPlatformSurface *surface)
+{
+    EGLSurface eglSurface = static_cast<QWebosWindow*>(surface)->eglSurface();
+    eglBindAPI(EGL_OPENGL_ES_API);
+    eglSwapBuffers(mScreen->eglDisplay(), eglSurface);
+}
+
+void (*QWebosContext::getProcAddress(const QByteArray& procName))()
+{
+    eglBindAPI(EGL_OPENGL_ES_API);
+    return eglGetProcAddress(procName.constData());
+}
 QT_END_NAMESPACE
-#endif // QWEBOSWINDOW_H
+

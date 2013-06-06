@@ -64,8 +64,8 @@ public:
     void resize(const QSize &size, const QRegion &staticContents);
 
 private:
-    QOpenGLContext *m_context;
-    QOpenGLPaintDevice *m_device;
+    QOpenGLContext *mContext;
+    QOpenGLPaintDevice *mDevice;
 };
 
 QT_END_NAMESPACE

@@ -48,22 +48,22 @@ QT_BEGIN_NAMESPACE
 
 QWebosBackingStore::QWebosBackingStore(QWindow *window)
     : QPlatformBackingStore(window)
-    , m_context(new QOpenGLContext)
-    , m_device(0)
+    , mContext(new QOpenGLContext)
+    , mDevice(0)
 {
-    m_context->setFormat(window->requestedFormat());
-    m_context->setScreen(window->screen());
-    m_context->create();
+    mContext->setFormat(window->requestedFormat());
+    mContext->setScreen(window->screen());
+    mContext->create();
 }
 
 QWebosBackingStore::~QWebosBackingStore()
 {
-    delete m_context;
+    delete mContext;
 }
 
 QPaintDevice *QWebosBackingStore::paintDevice()
 {
-    return m_device;
+    return mDevice;
 }
 
 void QWebosBackingStore::flush(QWindow *window, const QRegion &region, const QPoint &offset)
@@ -75,7 +75,7 @@ void QWebosBackingStore::flush(QWindow *window, const QRegion &region, const QPo
     qWarning("QEglBackingStore::flush %p", window);
 #endif
 
-    m_context->swapBuffers(window);
+    mContext->swapBuffers(window);
 }
 
 void QWebosBackingStore::beginPaint(const QRegion &)
@@ -83,13 +83,13 @@ void QWebosBackingStore::beginPaint(const QRegion &)
     // needed to prevent QOpenGLContext::makeCurrent() from failing
     window()->setSurfaceType(QSurface::OpenGLSurface);
 
-    m_context->makeCurrent(window());
-    m_device = new QOpenGLPaintDevice(window()->size());
+    mContext->makeCurrent(window());
+    mDevice = new QOpenGLPaintDevice(window()->size());
 }
 
 void QWebosBackingStore::endPaint()
 {
-    delete m_device;
+    delete mDevice;
 }
 
 void QWebosBackingStore::resize(const QSize &size, const QRegion &staticContents)

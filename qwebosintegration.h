@@ -70,19 +70,21 @@ public:
     QPlatformOpenGLContext *createPlatformOpenGLContext(QOpenGLContext *context) const;
 
     QPlatformFontDatabase *fontDatabase() const;
-
     QAbstractEventDispatcher *guiThreadEventDispatcher() const;
 
-    QVariant styleHint(QPlatformIntegration::StyleHint hint) const;
+    QPlatformScreen *screen() const { return mScreen; }
+    EGLDisplay display() const { return mEglDisplay; }
 
 private:
     QPlatformFontDatabase *mFontDb;
     QPlatformScreen *mScreen;
+    QAbstractEventDispatcher *mEventDispatcher;
+    EGLDisplay mEglDisplay;
 
-    GMainContext *m_context;
-    GMainLoop *m_mainLoop;
-    QWebosWindowManagerClient *m_client;
-    WebosSurfaceManagerClient m_surfaceClient;
+    GMainContext *mContext;
+    GMainLoop *mMainLoop;
+    QWebosWindowManagerClient *mClient;
+    WebosSurfaceManagerClient mSurfaceClient;
 };
 
 QT_END_NAMESPACE
