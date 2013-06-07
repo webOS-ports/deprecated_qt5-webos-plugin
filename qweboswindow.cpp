@@ -52,21 +52,20 @@
 
 QT_BEGIN_NAMESPACE
 
-QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
-                           QWindow *w, QWebosScreen *screen)
+QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebosScreen *screen)
     : QPlatformWindow(w),
       OffscreenNativeWindow(w->width(), w->height()),
       mWinid(0),
       mClient(client),
-      mSurfaceClient(surfaceClient),
-      mScreen(screen),
-      mBufferSemaphore(0)
+      mScreen(screen)
 {
     // Register our window with the manager to get a id assigned
     QSize size = geometry().size();
     channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 1),
                 size.width(), size.height(), &mWinid));
     mClient->addWindow(this);
+
+    this->identify(mWinid);
 
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(mWinid));
@@ -87,26 +86,6 @@ void QWebosWindow::createSurface()
     mEglSurface = eglCreateWindowSurface(mScreen->eglDisplay(), mScreen->eglConfig(),
                                          nativeWindow, NULL);
     assert(mEglSurface != EGL_NO_SURFACE);
-}
-
-void QWebosWindow::postBuffer(OffscreenNativeWindowBuffer *buffer)
-{
-    if (mWinid == -1)
-        return;
-
-    mSurfaceClient->postBuffer(mWinid, buffer);
-}
-
-void QWebosWindow::waitForBuffer(OffscreenNativeWindowBuffer *buffer)
-{
-    if (mWinid == -1)
-        return;
-
-    if (!mBufferSemaphore)
-        mBufferSemaphore = new QSystemSemaphore(QString("EGLWindow%1").arg(mWinid), 3,
-                                                QSystemSemaphore::Create);
-
-    mBufferSemaphore->acquire();
 }
 
 void QWebosWindow::setGeometry(const QRect &)
@@ -139,6 +118,14 @@ void QWebosWindow::setVisible(bool visible)
     }
 
     QPlatformWindow::setVisible(visible);
+}
+
+void QWebosWindow::resizeSurface()
+{
+    if (mEglSurface != EGL_NO_SURFACE)
+        assert(eglDestroySurface(mScreen->eglDisplay(), mEglSurface) == EGL_TRUE);
+
+    createSurface();
 }
 
 void QWebosWindow::handleFocus(bool focused)

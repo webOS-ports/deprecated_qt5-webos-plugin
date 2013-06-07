@@ -48,8 +48,6 @@
 #include "qwebosscreen.h"
 #include "qweboswindowmanagerclient.h"
 
-#include <WebosSurfaceManagerClient.h>
-
 #include <qpa/qplatformintegration.h>
 #include <qpa/qplatformscreen.h>
 
@@ -84,7 +82,6 @@ private:
     GMainContext *mContext;
     GMainLoop *mMainLoop;
     QWebosWindowManagerClient *mClient;
-    WebosSurfaceManagerClient mSurfaceClient;
 };
 
 QT_END_NAMESPACE

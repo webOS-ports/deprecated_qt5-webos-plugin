@@ -93,11 +93,10 @@ bool QWebosIntegration::hasCapability(QPlatformIntegration::Capability cap) cons
 
 QPlatformWindow *QWebosIntegration::createPlatformWindow(QWindow *window) const
 {
-    QPlatformWindow *platformWindow = new QWebosWindow(mClient, &mSurfaceClient, window, mScreen);
+    QPlatformWindow *platformWindow = new QWebosWindow(mClient, window, mScreen);
     platformWindow->requestActivateWindow();
     return platformWindow;
 }
-
 
 QPlatformBackingStore *QWebosIntegration::createPlatformBackingStore(QWindow *window) const
 {

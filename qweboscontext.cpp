@@ -83,9 +83,31 @@ void QWebosContext::doneCurrent()
 
 void QWebosContext::swapBuffers(QPlatformSurface *surface)
 {
-    EGLSurface eglSurface = static_cast<QWebosWindow*>(surface)->eglSurface();
+    QWebosWindow *window = static_cast<QWebosWindow*>(surface);
+
+    EGLSurface eglSurface = window->eglSurface();
     eglBindAPI(EGL_OPENGL_ES_API);
     eglSwapBuffers(mScreen->eglDisplay(), eglSurface);
+
+    EGLint width, height;
+    bool restoreCurrent = false;
+
+    eglQuerySurface(mScreen->eglDisplay(), window->eglSurface(), EGL_WIDTH, &width);
+    eglQuerySurface(mScreen->eglDisplay(), window->eglSurface(), EGL_HEIGHT, &height);
+
+    QSize surfaceSize = QSize(width, height);
+
+    if (surfaceSize != window->geometry().size()) {
+        if (eglGetCurrentContext() == mEglContext) {
+            doneCurrent();
+            restoreCurrent = true;
+        }
+
+        window->resizeSurface();
+
+        if (restoreCurrent)
+            makeCurrent(surface);
+    }
 }
 
 void (*QWebosContext::getProcAddress(const QByteArray& procName))()

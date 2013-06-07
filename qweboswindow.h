@@ -54,7 +54,6 @@
 #include <SysMgrKeyEventTraits.h>
 #include <SysMgrTouchEventTraits.h>
 
-#include <WebosSurfaceManagerClient.h>
 #include <OffscreenNativeWindow.h>
 
 class PIpcChannel;
@@ -65,8 +64,7 @@ class QWebosWindow : public QPlatformWindow,
                      public OffscreenNativeWindow
 {
 public:
-    QWebosWindow(QWebosWindowManagerClient *client, WebosSurfaceManagerClient *surfaceClient,
-                 QWindow *w, QWebosScreen *screen);
+    QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebosScreen *screen);
 
     void setGeometry(const QRect &);
     virtual void setVisible(bool visible);
@@ -74,8 +72,7 @@ public:
     WId winId() const { return mWinid; }
     EGLSurface eglSurface() const { return mEglSurface; }
 
-    virtual void postBuffer(OffscreenNativeWindowBuffer *buffer);
-    virtual void waitForBuffer(OffscreenNativeWindowBuffer *buffer);
+    void resizeSurface();
 
 public:
     void handleFocus(bool focused);
@@ -93,10 +90,8 @@ public:
 private:
     WId mWinid;
     QWebosWindowManagerClient *mClient;
-    WebosSurfaceManagerClient *mSurfaceClient;
     QWebosScreen *mScreen;
     EGLSurface mEglSurface;
-    QSystemSemaphore *mBufferSemaphore;
 
 private:
     void createSurface();
