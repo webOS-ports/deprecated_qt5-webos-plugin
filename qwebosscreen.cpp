@@ -42,6 +42,11 @@
 #include "qwebosscreen.h"
 #include "qweboswindow.h"
 
+#include <fcntl.h>
+#include <unistd.h>
+#include <linux/fb.h>
+#include <sys/ioctl.h>
+
 #include <QtPlatformSupport/private/qeglconvenience_p.h>
 #include <QtPlatformSupport/private/qeglplatformcontext_p.h>
 
@@ -77,10 +82,64 @@ QWebosScreen::QWebosScreen(EGLNativeDisplayType displayType)
             swapInterval = 1;
     }
     eglSwapInterval(mEglDisplay, swapInterval);
+
+    setScreenSize();
 }
 
 QWebosScreen::~QWebosScreen()
 {
+}
+
+void QWebosScreen::setScreenSize()
+{
+    const int defaultWidth = 600;
+    const int defaultHeight = 800;
+
+    int width = qgetenv("QT_QPA_WEBOS_SCREEN_WIDTH").toInt();
+    int height = qgetenv("QT_QPA_WEBOS_SCREEN_HEIGHT").toInt();
+
+    if (width && height) {
+        mGeometry.setWidth(width);
+        mGeometry.setHeight(height);
+        return;
+    }
+
+    struct fb_var_screeninfo vinfo;
+
+    int xres = -1;
+    int yres = -1;
+
+    int framebufferFd = open("/dev/fb0", O_RDONLY);
+    if (framebufferFd < 0) {
+        qWarning("QWebos: Failed to open framebuffer at /dev/fb0");
+        return;
+    }
+
+    if (ioctl(framebufferFd, FBIOGET_VSCREENINFO, &vinfo) == -1) {
+        qWarning("QWebos: Could not query variable screen info.");
+        close(framebufferFd);
+        return;
+    }
+
+    close(framebufferFd);
+
+    xres = vinfo.xres;
+    yres = vinfo.yres;
+
+    mGeometry.setWidth(xres <= 0 ? defaultWidth : xres);
+    mGeometry.setHeight(yres <= 0 ? defaultHeight: yres);
+
+    if (xres <= 0 || yres <= 0) {
+        qWarning("QWebos: Unable to query screen resolution, defaulting to %dx%d.\n"
+                 "QWebos: To override, set QT_QPA_WEBOS_SCREEN_WIDTH and QT_QPA_WEBOS_SCREEN_HEIGHT.",
+                 defaultWidth, defaultHeight);
+        return;
+    }
+
+    if (width)
+        mGeometry.setWidth(width);
+    if (height)
+        mGeometry.setHeight(height);
 }
 
 int QWebosScreen::depth() const

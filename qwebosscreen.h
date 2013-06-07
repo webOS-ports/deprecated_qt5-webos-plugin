@@ -63,6 +63,9 @@ public:
     EGLConfig eglConfig() const { return mEglConfig; }
 
 private:
+    void setScreenSize();
+
+private:
     QRect mGeometry;
     int mDepth;
     QImage::Format mFormat;

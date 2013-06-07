@@ -59,10 +59,11 @@ QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebos
       mClient(client),
       mScreen(screen)
 {
+    QRect screenGeometry(mScreen->availableGeometry());
+
     // Register our window with the manager to get a id assigned
-    QSize size = geometry().size();
     channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 1),
-                size.width(), size.height(), &mWinid));
+                screenGeometry.width(), screenGeometry.height(), &mWinid));
     mClient->addWindow(this);
 
     this->identify(mWinid);
@@ -71,11 +72,11 @@ QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebos
     qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(mWinid));
 #endif
 
-    QRect screenGeometry(mScreen->availableGeometry());
     if (w->geometry() != screenGeometry) {
         QWindowSystemInterface::handleGeometryChange(w, screenGeometry);
     }
 
+    setGeometry(QRect());
     createSurface();
 }
 
@@ -95,6 +96,7 @@ void QWebosWindow::setGeometry(const QRect &)
     QWindowSystemInterface::handleGeometryChange(window(), rect);
 
     QPlatformWindow::setGeometry(rect);
+    OffscreenNativeWindow::resize(rect.width(), rect.height());
 }
 
 void QWebosWindow::setVisible(bool visible)
