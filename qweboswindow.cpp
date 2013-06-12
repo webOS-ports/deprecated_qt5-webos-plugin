@@ -42,6 +42,8 @@
 **
 ****************************************************************************/
 
+#include <QObject>
+#include <QDebug>
 #include "qweboswindow.h"
 
 #define MESSAGES_INTERNAL_FILE "SysMgrMessagesInternal.h"
@@ -57,23 +59,29 @@ QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebos
       OffscreenNativeWindow(w->width(), w->height()),
       mWinid(0),
       mClient(client),
-      mScreen(screen)
+      mScreen(screen),
+      mTouchDevice(new QTouchDevice)
 {
+    mTouchDevice->setType(QTouchDevice::TouchScreen);
+    mTouchDevice->setCapabilities(QTouchDevice::Position | QTouchDevice::Area |
+                                  QTouchDevice::Pressure | QTouchDevice::NormalizedPosition);
+    QWindowSystemInterface::registerTouchDevice(mTouchDevice);
+
     QRect screenGeometry(mScreen->availableGeometry());
 
     // Register our window with the manager to get a id assigned
-    channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 1),
+    channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 3),
                 screenGeometry.width(), screenGeometry.height(), &mWinid));
-    mClient->addWindow(this);
 
     this->identify(mWinid);
+    mClient->addWindow(this);
 
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosWindow %p: %p 0x%x\n", this, w, uint(mWinid));
 #endif
 
-    if (w->geometry() != screenGeometry) {
-        QWindowSystemInterface::handleGeometryChange(w, screenGeometry);
+    if (window()->geometry() != screenGeometry) {
+        QWindowSystemInterface::handleGeometryChange(window(), screenGeometry);
     }
 
     setGeometry(QRect());
@@ -199,8 +207,6 @@ void QWebosWindow::handleInputEvent(const SysMgrEventWrapper& wrapper)
 
 void QWebosWindow::handleTouchEvent(const SysMgrTouchEvent& touchEvent)
 {
-    Q_UNUSED(touchEvent);
-#if 0
     QEvent::Type type = QEvent::None;
 
     QList<QWindowSystemInterface::TouchPoint> touchPoints;
@@ -238,12 +244,9 @@ void QWebosWindow::handleTouchEvent(const SysMgrTouchEvent& touchEvent)
         }
 
         touchPoints.append(touchPoint);
-
-        QWindowSystemInterface::handleMouseEvent(window(), pt, pt, (touchPoint.state != Qt::TouchPointReleased ? Qt::LeftButton : Qt::NoButton));
     }
 
-    QWindowSystemInterface::handleTouchEvent(window(), type, QTouchEvent::TouchScreen, touchPoints);
-#endif
+    QWindowSystemInterface::handleTouchEvent(window(), mTouchDevice, touchPoints);
 }
 
 void QWebosWindow::handleKeyEvent(const SysMgrKeyEvent& keyEvent)

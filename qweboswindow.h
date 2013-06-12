@@ -92,6 +92,7 @@ private:
     QWebosWindowManagerClient *mClient;
     QWebosScreen *mScreen;
     EGLSurface mEglSurface;
+    QTouchDevice *mTouchDevice;
 
 private:
     void createSurface();
