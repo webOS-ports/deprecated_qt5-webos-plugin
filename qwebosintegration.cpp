@@ -75,11 +75,16 @@ QWebosIntegration::QWebosIntegration()
 
     mContext = g_main_context_default();
     mMainLoop = g_main_loop_new(mContext, TRUE);
+
     mClient = new QWebosWindowManagerClient(mMainLoop);
 }
 
 QWebosIntegration::~QWebosIntegration()
 {
+    g_main_loop_unref(mMainLoop);
+    g_main_context_unref(mContext);
+
+    delete mClient;
     delete mScreen;
     delete mFontDb;
     delete mEventDispatcher;
