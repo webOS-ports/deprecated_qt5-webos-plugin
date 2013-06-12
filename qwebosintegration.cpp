@@ -50,6 +50,7 @@
 
 #include <QtPlatformSupport/private/qgenericunixfontdatabase_p.h>
 #include <QtPlatformSupport/private/qgenericunixeventdispatcher_p.h>
+#include <QtGui/private/qguiapplication_p.h>
 
 #include <qpa/qplatformwindow.h>
 #include <QtGui/QSurfaceFormat>
@@ -62,9 +63,11 @@ QT_BEGIN_NAMESPACE
 
 QWebosIntegration::QWebosIntegration()
     : mFontDb(new QGenericUnixFontDatabase()),
-      mScreen(new QWebosScreen(EGL_DEFAULT_DISPLAY))
+      mScreen(new QWebosScreen(EGL_DEFAULT_DISPLAY)),
+      mEventDispatcher(createUnixEventDispatcher())
 {
     screenAdded(mScreen);
+    QGuiApplicationPrivate::instance()->setEventDispatcher(mEventDispatcher);
 
 #ifdef QEGL_EXTRA_DEBUG
     qWarning("QWebosIntegration\n");
@@ -79,6 +82,7 @@ QWebosIntegration::~QWebosIntegration()
 {
     delete mScreen;
     delete mFontDb;
+    delete mEventDispatcher;
 }
 
 bool QWebosIntegration::hasCapability(QPlatformIntegration::Capability cap) const
@@ -115,7 +119,7 @@ QPlatformFontDatabase *QWebosIntegration::fontDatabase() const
 
 QAbstractEventDispatcher *QWebosIntegration::guiThreadEventDispatcher() const
 {
-    return createUnixEventDispatcher();
+    return mEventDispatcher;
 }
 
 QT_END_NAMESPACE
