@@ -32,6 +32,8 @@ public:
 
     void addWindow(QWebosWindow* window);
 
+    bool connected();
+
 private:
     virtual void serverConnected(PIpcChannel* channel);
     virtual void serverDisconnected();
@@ -43,6 +45,7 @@ private:
 
 private:
     QHash<int, QWebosWindow*> m_windowMap;
+    PIpcChannel *mChannel;
 };
 
 #endif // QWEBOSIPCCLIENT_H

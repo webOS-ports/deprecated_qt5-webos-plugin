@@ -35,12 +35,18 @@ QWebosWindowManagerClient::QWebosWindowManagerClient(GMainLoop *loop)
 void QWebosWindowManagerClient::serverConnected(PIpcChannel* channel)
 {
     g_main_loop_quit(mainLoop());
-    setChannel(channel);
+    mChannel = channel;
+    mChannel->setListener(this);
 }
 
 void QWebosWindowManagerClient::serverDisconnected()
 {
-    setChannel(0);
+    mChannel = 0;
+}
+
+bool QWebosWindowManagerClient::connected()
+{
+    return mChannel != 0;
 }
 
 void QWebosWindowManagerClient::onMessageReceived(const PIpcMessage& msg)
