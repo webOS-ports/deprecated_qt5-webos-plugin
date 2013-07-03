@@ -54,14 +54,14 @@
 #include <SysMgrKeyEventTraits.h>
 #include <SysMgrTouchEventTraits.h>
 
-#include <OffscreenNativeWindow.h>
+#include <EGL/egl.h>
 
 class PIpcChannel;
+class IWebosEglWindow;
 
 QT_BEGIN_NAMESPACE
 
-class QWebosWindow : public QPlatformWindow,
-                     public OffscreenNativeWindow
+class QWebosWindow : public QPlatformWindow
 {
 public:
     QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebosScreen *screen);
@@ -88,6 +88,7 @@ public:
     PIpcChannel* channel() const; // Required by IPC_MESSAGE_FORWARD
 
 private:
+    IWebosEglWindow *m_webosEglWindow;
     WId mWinid;
     QWebosWindowManagerClient *mClient;
     QWebosScreen *mScreen;

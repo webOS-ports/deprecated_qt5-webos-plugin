@@ -42,6 +42,7 @@
 #include "qwebosscreen.h"
 #include "qweboswindow.h"
 
+#include <assert.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <linux/fb.h>

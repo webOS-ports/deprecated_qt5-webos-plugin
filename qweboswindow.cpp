@@ -42,6 +42,7 @@
 **
 ****************************************************************************/
 
+#include <assert.h>
 #include <QObject>
 #include <QDebug>
 #include "qweboswindow.h"
@@ -50,13 +51,16 @@
 #include <PIpcMessageMacros.h>
 #include <PIpcChannel.h>
 
+#include <EGL/egl.h>
+#include <WebosSurfaceManagerClient.h>
+
 #include <qpa/qwindowsysteminterface.h>
 
 QT_BEGIN_NAMESPACE
 
 QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebosScreen *screen)
     : QPlatformWindow(w),
-      OffscreenNativeWindow(w->width(), w->height()),
+      m_webosEglWindow(0),
       mWinid(0),
       mClient(client),
       mScreen(screen),
@@ -69,11 +73,16 @@ QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebos
 
     QRect screenGeometry(mScreen->availableGeometry());
 
+    WebosSurfaceManagerClient::CreateNativeWindow(m_webosEglWindow);
+    if(m_webosEglWindow)
+        m_webosEglWindow->resize(w->width(), w->height());
+
     // Register our window with the manager to get a id assigned
     channel()->sendSyncMessage(new ViewHost_PrepareAddWindow((1 << 3),
                 screenGeometry.width(), screenGeometry.height(), &mWinid));
 
-    this->identify(mWinid);
+    if(m_webosEglWindow)
+        m_webosEglWindow->identify(mWinid);
     mClient->addWindow(this);
 
 #ifdef QEGL_EXTRA_DEBUG
@@ -90,10 +99,11 @@ QWebosWindow::QWebosWindow(QWebosWindowManagerClient *client, QWindow *w, QWebos
 
 void QWebosWindow::createSurface()
 {
-    EGLNativeWindowType nativeWindow = static_cast<ANativeWindow*>(this);
+    EGLNativeWindowType nativeWindow = (EGLNativeWindowType)m_webosEglWindow;;
 
     mEglSurface = eglCreateWindowSurface(mScreen->eglDisplay(), mScreen->eglConfig(),
                                          nativeWindow, NULL);
+
     assert(mEglSurface != EGL_NO_SURFACE);
 }
 
@@ -104,7 +114,8 @@ void QWebosWindow::setGeometry(const QRect &)
     QWindowSystemInterface::handleGeometryChange(window(), rect);
 
     QPlatformWindow::setGeometry(rect);
-    OffscreenNativeWindow::resize(rect.width(), rect.height());
+    if(m_webosEglWindow)
+        m_webosEglWindow->resize(rect.width(), rect.height());
 }
 
 void QWebosWindow::setVisible(bool visible)
@@ -133,7 +144,7 @@ void QWebosWindow::setVisible(bool visible)
 void QWebosWindow::resizeSurface()
 {
     if (mEglSurface != EGL_NO_SURFACE)
-        assert(eglDestroySurface(mScreen->eglDisplay(), mEglSurface) == EGL_TRUE);
+        eglDestroySurface(mScreen->eglDisplay(), mEglSurface);
 
     createSurface();
 }
